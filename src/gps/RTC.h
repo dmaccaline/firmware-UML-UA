@@ -3,6 +3,7 @@
 #include "configuration.h"
 #include "sys/time.h"
 #include <Arduino.h>
+#include "nanoSec.h"
 
 enum RTCQuality {
 
@@ -29,10 +30,10 @@ bool perhapsSetRTC(RTCQuality q, const struct timeval *tv);
 bool perhapsSetRTC(RTCQuality q, struct tm &t);
 
 /// Return time since 1970 in secs.  While quality is RTCQualityNone we will be returning time based at zero
-uint32_t getTime();
+uint64_t getTime();
 
 /// Return time since 1970 in secs.  If quality is RTCQualityNone return zero
-uint32_t getValidTime(RTCQuality minQuality);
+uint64_t getValidTime(RTCQuality minQuality);
 
 void readFromRTC();
 

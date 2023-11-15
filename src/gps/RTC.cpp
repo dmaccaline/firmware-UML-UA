@@ -15,6 +15,7 @@ RTCQuality getRTCQuality()
 // stuff that really should be in in the instance instead...
 static uint32_t
     timeStartMsec; // Once we have a GPS lock, this is where we hold the initial msec clock that corresponds to that time
+static uint64_t timeStartNSec;  //same as timeStartMsec, stored in nanoseconds
 static uint64_t zeroOffsetSecs; // GPS based time in secs since 1970 - only updated once on initial lock
 
 /**
@@ -26,7 +27,7 @@ void readFromRTC()
     struct timeval tv; /* btw settimeofday() is helpful here too*/
 #ifdef RV3028_RTC
     if (rtc_found.address == RV3028_RTC) {
-        uint32_t now = millis();
+        uint64_t now = nano();
         Melopero_RV3028 rtc;
 #ifdef I2C_SDA1
         rtc.initI2C(rtc_found.port == ScanI2C::I2CPort::WIRE1 ? Wire1 : Wire);
@@ -51,7 +52,7 @@ void readFromRTC()
     }
 #elif defined(PCF8563_RTC)
     if (rtc_found.address == PCF8563_RTC) {
-        uint32_t now = millis();
+        uint64_t now = nano();
         PCF8563_Class rtc;
 
 #ifdef I2C_SDA1
@@ -79,7 +80,7 @@ void readFromRTC()
     }
 #else
     if (!gettimeofday(&tv, NULL)) {
-        uint32_t now = millis();
+        uint64_t now = nano();
         LOG_DEBUG("Read RTC time as %ld\n", tv.tv_sec);
         timeStartMsec = now;
         zeroOffsetSecs = tv.tv_sec;
@@ -98,15 +99,15 @@ void readFromRTC()
  */
 bool perhapsSetRTC(RTCQuality q, const struct timeval *tv)
 {
-    static uint32_t lastSetMsec = 0;
-    uint32_t now = millis();
+    static uint64_t lastSetNsec = 0;
+    uint64_t now = nano();
 
     bool shouldSet;
     if (q > currentQuality) {
         shouldSet = true;
         LOG_DEBUG("Upgrading time to quality %d\n", q);
-    } else if (q == RTCQualityGPS && (now - lastSetMsec) > (12 * 60 * 60 * 1000UL)) {
-        // Every 12 hrs we will slam in a new GPS time, to correct for local RTC clock drift
+    } else if (q == RTCQualityGPS && (now - lastSetNsec) > uint64_t(30 * 60 * 1000000000UL)) {
+        // Every 30 minutes will replace value with more recent measurement
         shouldSet = true;
         LOG_DEBUG("Reapplying external time to correct clock drift %ld secs\n", tv->tv_sec);
     } else
@@ -114,10 +115,10 @@ bool perhapsSetRTC(RTCQuality q, const struct timeval *tv)
 
     if (shouldSet) {
         currentQuality = q;
-        lastSetMsec = now;
+        lastSetNsec = now;
 
         // This delta value works on all platforms
-        timeStartMsec = now;
+        lastSetNsec = now;
         zeroOffsetSecs = tv->tv_sec;
         // If this platform has a setable RTC, set it
 #ifdef RV3028_RTC
@@ -194,9 +195,9 @@ bool perhapsSetRTC(RTCQuality q, struct tm &t)
  *
  * @return The current time in seconds since the Unix epoch.
  */
-uint32_t getTime()
+uint64_t getTime()
 {
-    return (((uint32_t)millis() - timeStartMsec) / 1000) + zeroOffsetSecs;
+    return (((uint64_t)nano() - timeStartNSec) / 1000000000) + zeroOffsetSecs;
 }
 
 /**
@@ -205,7 +206,7 @@ uint32_t getTime()
  * @param minQuality The minimum quality of the RTC time required for it to be considered valid.
  * @return The current time from the RTC if it meets the minimum quality requirement, or 0 if the time is not valid.
  */
-uint32_t getValidTime(RTCQuality minQuality)
+uint64_t getValidTime(RTCQuality minQuality)
 {
     return (currentQuality >= minQuality) ? getTime() : 0;
 }
