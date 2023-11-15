@@ -30,9 +30,11 @@ bool perhapsSetRTC(RTCQuality q, const struct timeval *tv);
 bool perhapsSetRTC(RTCQuality q, struct tm &t);
 
 /// Return time since 1970 in secs.  While quality is RTCQualityNone we will be returning time based at zero
+//Note, getTime() used in several places, with output value stored as uint32_t.  these may need updating depending on our needs
 uint64_t getTime();
 
 /// Return time since 1970 in secs.  If quality is RTCQualityNone return zero
+//Note, getValidTime() used in several places, with output value stored as uint32_t.  these may need updating depending on our needs
 uint64_t getValidTime(RTCQuality minQuality);
 
 void readFromRTC();

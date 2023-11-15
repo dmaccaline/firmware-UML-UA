@@ -106,7 +106,7 @@ bool perhapsSetRTC(RTCQuality q, const struct timeval *tv)
     if (q > currentQuality) {
         shouldSet = true;
         LOG_DEBUG("Upgrading time to quality %d\n", q);
-    } else if (q == RTCQualityGPS && (now - lastSetNsec) > uint64_t(30 * 60 * 1000000000UL)) {
+    } else if (q == RTCQualityGPS && (now - lastSetNsec) > (30 * 60 * 1000000000UL)) {
         // Every 30 minutes will replace value with more recent measurement
         shouldSet = true;
         LOG_DEBUG("Reapplying external time to correct clock drift %ld secs\n", tv->tv_sec);
